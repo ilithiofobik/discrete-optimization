@@ -1,0 +1,13 @@
+*.txt
+*.aux
+*.log
+*.out
+*.gz
+*.zip
+*.png
+radixheap
+dijkstra
+dial
+/inputs
+/outputs
+/.vscode

@@ -1,0 +1,337 @@
+% uklad dokumentu
+	\documentclass{article}
+	\usepackage{xparse}
+	\usepackage[margin=0.5cm]{geometry}
+    \usepackage{enumerate}
+	\frenchspacing
+    \linespread{1.2}
+    \setlength{\parindent}{0pt}
+
+% jezyk polski
+	\usepackage[polish]{babel}
+	\usepackage[utf8]{inputenc}
+	\usepackage{polski}
+
+% pakiety matematyczne
+    \let\lll\undefined
+	\usepackage{amssymb}
+    \usepackage{amsthm}
+	\usepackage{amsmath}
+	\usepackage{amsfonts}
+	\usepackage{tikz}
+	\usetikzlibrary{automata,positioning}
+	\usepackage{algpseudocode}
+
+% hiperlacza
+	\usepackage{hyperref}
+	\hypersetup{
+		colorlinks,
+		citecolor=black,
+		filecolor=black,
+		linkcolor=black,
+		urlcolor=black
+	}
+
+% wstawianie zdjec
+	\usepackage{graphicx}
+	\pagenumbering{gobble}
+
+\usepackage{mathtools}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+% podstawowe informacje
+    \title{Algorytmy optymalizacji dyskretnej - Lista 3}
+    \author{Wojciech Sęk}
+
+\begin{document}
+
+\maketitle
+\section{Algorytmy}
+Wszystkie algorytmy rozważają \textbf{ silnie spójne} grafy $G=(N,A)$, gdzie $|N|=n,|A|=m$ znajdują długości najkrótszych ścieżek od wierzchołka startowego $s$ do każdego $v\in N\setminus\{s\}$. Niech $a_{ij}$ to krawędź od $i$ do $j$, a $c_{ij}$ to koszt tej krawędzi. Ponadto $\displaystyle C=\max_{(i,j)\in A} c_{ij}$.
+\subsection{Algorytm Dijkstry}
+\subsubsection{Idea}
+Mamy zbiór wierzchołków z ustaloną wartością $d$ i początkowo ustawiamy $d[i]=\infty$ dla $i\neq s$, a $d[s]=0$. Z kolejki priorytetowej (priorytetem jest najmniejsza wartość $d$) ściągamy po kolei każdy wierzchołek i rozważamy jego sąsiadów. Jeżeli koszt dojścia do danego wierzchołka i dodany koszt dojścia z niego do jego sąsiada jest mniejszy od dotychczasowego dojścia do jego sąsiada, to aktualizujemy wartość $d$ sąsiada. Robimy to dopóki kolejka jest niepusta.
+\subsubsection{Implementacja}
+\begin{algorithmic}
+\Function{Dijkstra}{$G, s$}
+	\State $H \gets$ pusta kolejka priorytetowa
+	\State $d \gets []$
+	\For {$i \in N\setminus\{s\}$}
+		\State $d[i]\gets\infty$
+	\EndFor
+	\State $d[s] \gets 0$
+	\State $H.insert(s)$
+	\While {$H\neq \emptyset$}
+		\State $i\gets H.extractMin()$
+		\For {$a_{ij} \in A$}
+			\State $val\gets d[i]+c_{ij}$
+			\If {$d[j]>val$}
+				\If {$d[j]=\infty$}
+					\State $d[j]\gets val$
+					\State $H.insert(j)$
+				\Else
+					\State $d[j]\gets val$
+					\State $H.decreaseKey(j, val)$
+				\EndIf
+			\EndIf	
+		\EndFor
+	\EndWhile	
+	\State \Return $d$
+\EndFunction
+\end{algorithmic}
+\newpage
+
+\subsubsection{Złożoność}
+Przyjmijmy, że kolejka priorytetowa jest implementowana przez kopiec binarny. Wtedy:
+\begin{itemize}
+\item złożoność $insert$ wynosi $O(\log k)$, gdzie $k$ to aktualny rozmiar kolejki, zatem złożoność wszystkich operacji insert wynosi $O(n\log n)$,
+\item złożoność $extractMin$ wynosi $O(\log k)$, gdzie $k$ to aktualny rozmiar kolejki, bo ściągamy wartość ze kolejki i wykonujemy rekurencyjnie $heapify$ co najwyżej $\log k$ razy. W szczególności jest to operacja $O(\log n)$, bo $k<n$.
+\item złożoność $decreaseKey$ wynosi $O(\log k)$, gdzie $k$ to aktualny rozmiar kolejki, bo zamieniamy wartość i zamieniamy wartość z rodzicem aż będzie zachowana własność kolejki priorytetowej.  W szczególności jest to operacja $O(\log n)$, bo $k<n$.
+\end{itemize}
+Zauważmy, że operacja $extractMin$ jest wykonywana dokładnie $n$ razy. Operacja $decreaseKey$ jest wykonywana co najwyżej $m$ razy (jest wykonywana lub nie przy każdej krawędzi). Zatem sumaryczna złożoność algorytmu:
+$$O(n\log n)+nO(\log n)+mO(\log n)=O((n+m)\log n)$$
+
+\subsection{Algorytm Diala}
+\subsubsection{Idea}
+Mamy dane jak w algorytmie Dijkstry. Wcześniej, wszystkie wierzchołki przechowywaliśmy w jednej kolejce priorytetowej. Możemy natomiast mieć $C+1$ kubełków. Na początku obiegu głównej pętli $curr$ (indeksujemy od 0) w kubełkach $content[i],i\geq (curr \mod (C+1))$ przechowujemy wierzchołki o $d=\frac{curr}{C+1}\cdot (C+1)+i$, a w mniejszych indeksach o $d=(\frac{curr}{C+1}+1)\cdot (C+1)+i$.  Przetwarzając kubełki po kolei i aktualizując wartości nie doprowadzamy do konfliktów, ponieważ kubełek nie może mieć wpływu na kubełek dalszy niż $C$ kroków. Kubełki nie przechowują wierzchołków o $d=\infty$.
+\subsection{Implementacja}
+\begin{algorithmic}
+\Function{Dial}{$G, s$}
+	\State $content \gets$ tablica list wierzchołków rozmiaru $C+1$
+	\State $d \gets []$
+	\For {$i \in N\setminus\{s\}$}
+		\State $d[i]\gets\infty$
+	\EndFor
+	\State $d[s] \gets 0$
+	\State $content[0].insert(s)$
+	\State $S\gets 1, k\gets 0, curr\gets 0$
+	\While {$S < n$}
+		\While {$conent[k]\neq \emptyset$}
+			\State $i\gets content[k].extract()$
+			\State $S\gets S+1$
+			\For {$a_{ij}\in A$}
+				\State $old\gets d[j]$,  $new\gets curr+c_{ij}$
+				\If {$new<old$}
+					\If {$old<\infty$}
+						\State $content[old \mod (C+1)].remove(j)$
+					\EndIf
+					\State $content[new\mod (C+1)].insert(j)$
+					\State $d[b] \gets new$
+				\EndIf			
+			\EndFor
+		\EndWhile
+			\State $curr\gets curr + 1$
+			\State $k \gets curr \mod (C+1)$
+	\EndWhile	
+	\State \Return $d$
+\EndFunction
+\end{algorithmic}
+\newpage
+
+\subsubsection{Złożoność}
+Niech listy to listy dwukierunkowe z wartownikiem. Wtedy:
+\begin{itemize}
+\item złożoność $insert$ wynosi $O(1)$,
+\item złożoność $extract$ wynosi $O(1)$,
+\item złożoność $remove$ wynosi $O(1)$, jeśli przechowujemy wskaźniki do węzłów w dodatkowej tablicy.
+\end{itemize}
+Złożoność inicalizacji tabeli $d$ wynosi $O(n)$. Następnie będziemy wykonywać co najwyżej $m$ razy operację usunięcia z kubełka i wstawienia do nowego, i ponieważ każdy kubełek będziemy przeglądać co najwyżej $n$ razy (więcej nie bo maksymalny koszt jest $nC$) i mamy $C+1$ kubełków, to przejrzymy $O(nC)$ kubełków. Sumarycznie:
+$$O(n)+O(m)+O(nC)=O(m+nC)$$
+
+
+
+
+\subsection{Algorytm Radix Heap}
+\subsubsection{Idea}
+Zmodyfikujmy algorytm Diala. Teraz mamy $K=\ceil{\log(nC)}$ kubełków o szerokościach $1,1,2,4,8\ldots$, gdzie szerokość to moc zbioru wartości $d$ przyjmowanych przez wierzchołki w danym kubełku. Szukamy pierwszego niepustego kubełka. Jeżeli jego szerokość jest równa $1$ to rozważamy wszystkie wierzchołki z niego i updatujemy pozostałe wartości $d$. Jeśli jest większa od $1$, to przerzucamy wierzchołki z tego kubełka do poprzednich kubełków, zachowując kolejność zakresów w kubełkach. Można tak, bo $2^k=2^{k-1}+2^{k-2}+\cdots+1+1$.
+
+
+\subsection{Implementacja}
+\begin{algorithmic}
+\Function{RadixHeap}{$G, s$}
+	\State $K\gets \ceil{\log(nC)}$	
+    \State $d\gets []$
+    \State $bucket \gets []$
+    \State $content\gets$ tablica list wierzchołków rozmiaru $K+1$
+	\For {$i \in N\setminus \{s\}$}
+		\State $d[i]\gets\infty$
+		\State $bucket[i] = K$
+	\EndFor
+	\State $d[s]\gets 0$
+	\State $bucket[s] = 0$
+    \State $content[0].insert(s)$
+
+    \State $S \gets 1$
+    \State $k \gets 0$
+    \State $rangeBegin \gets [0,1,2,4,8,\ldots,2^{K-1}]$
+    \State $x \gets 1$
+	\While {$S<n$}
+		\State $k\gets 0$
+		\While {$content[k] = \emptyset$}
+			\State $k\gets k+1$
+		\EndWhile
+		\If {$k\leq 1$}
+		\State $i\gets content[k].extract()$
+		\State $S \gets S+1$
+		\For {$a_{ij}\in A$}
+			\State $old\gets d[j]$
+			\State $new\gets rangeBegin[k]+c_{ij}$
+			\If {$new<old$}
+				\State $oldBucket\gets bucket[j]$
+				\If {$old<
+				\infty$}
+					\State $content[oldBucket].remove(j)$
+				\EndIf
+				\State $newBucket\gets oldBucket$
+				\While {$rangeBegin[newBucket]>new$}
+					\State $newBucket\gets newBucket-1$
+				\EndWhile
+				\State $content[newBucket].insert(j)$
+				\State $d[b] \gets new$
+				\State $bucket[b] \gets newBucket$
+			\EndIf
+		\EndFor
+	\Else
+	\State $minVal\gets \infty$
+	\For {$i\in content[k]$}
+		\State $minVal\gets\min(minVal,d[i])$
+	\EndFor
+	\State $rangeBegin[0]\gets minVal$
+	\State $x\gets 1$
+	\For {$i\gets 1$ \textbf{ to } $k$}
+		\State $rangeBegin[i]\gets minVal+x$
+		\State $x\gets 2\cdot x$	\EndFor
+	\While {$content[k]\neq \emptyset$}
+		\State $i\gets content[k].extract()$
+		\State $newBucket\gets k-1$
+		\While {$rangeBegin[newBucket]>d[i]$} 
+		\State $newBucket\gets newBucket-1$
+		\EndWhile
+		\State $bucket[i]\gets newBucket$
+		\State $content[newBucket]\gets i$
+	\EndWhile
+	\EndIf
+	\EndWhile 	
+	
+	\State \Return $d$
+  
+\EndFunction
+\end{algorithmic}
+
+
+\subsubsection{Złożoność}
+Złożoności operacji na listach dwukierunkowych z wartownikiem tak jak wyżej. 
+\\ Złożoność inicjalizacji tabeli $d$ wynosi $O(n)$. Każdy węzeł może być przeniesiony co najwyżej $K$ razy  i mamy $n$ węzłów. Wybieranie węzła, czyli przeglądanie każdego kubełka aż do znalezienia pierwszego niepustego robimy ze złożonością $O(K)$, robimy tak $n$ razy. Rozważamy każdą krawędź, ze złożonością $O(1)$ przenosimy wierzchołek z kubełka do innego kubełka, jeśli jest taka potrzeba. Całkowita złożoność algorytmu wynosi:
+$$nO(K)+nO(K)+O(m)=O(m+nK)$$
+
+
+\section{Wyniki eksperymentów}
+Dla testów czasowych rozważamy $n=2^i$ dla $i\in\{10,11,\ldots,17\}$, a dla sprawdzania średnich odległości sprawdzamy rozważamy $n=2^i$ dla $i\in\{14,15,16,17\}$. Rozważamy 3 rodziny silnie spójnych grafów o $C=n$ ($Square$ ma $n'\approx n$ wierzchołków):
+\begin{itemize}
+\item $Long$ - wierzchołki pochodzą z prostokątnej siatki o bokach $x=\frac{2^i}{16}=2^{i-4}$ i $y=16$, zatem $m\approx 4n$
+\item $Square$ - wierzchołki pochodzą z prostokątnej siatki o bokach $x=\floor{\sqrt{n}}$ i $y=\floor{\frac{n}{x}}$, zatem $m\approx 4n$ i $n'=xy\approx n$ 
+\item $Random4$ - $m=4n$, krawędzie są losowe z zachowaniem silnej spójności.
+\end{itemize} 
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {distplot} 
+\caption{Średnie odległości w badanych rodzinach}
+\end{figure}
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {sddistplot} 
+\caption{Odchylenia standardowe odległości między punktami w badanych rodzinach}
+\end{figure}
+
+
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {Long-ntimeplot} 
+\caption{Czas działania algorytmów w rodzinie $Long$}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {Long-nnodialtimeplot} 
+\caption{Czas działania Dijkstry i Radix Heap w rodzinie $Long$}
+\end{figure}
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {Square-ntimeplot} 
+\caption{Czas działania algorytmów w rodzinie $Square$}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {Square-nnodialtimeplot} 
+\caption{Czas działania Dijkstry i Radix Heap w rodzinie $Square$}
+\end{figure}
+
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {Random4-ntimeplot} 
+\caption{Czas działania algorytmów w rodzinie $Random4$}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {Random4-nnoradixtimeplot} 
+\caption{Czas działania Dijkstry i Diala w rodzinie $Random4$}
+\end{figure}
+
+
+
+
+\clearpage
+\section{Intepretacja i wnioski}
+\subsection{Odległości w grafach}
+Oczywiście, największe średnie odległości między wierzchołkami są w rodzinie $Long$, ponieważ, gdy losujemy dwa punkty z tej rodziny, to mogą one się różnić o $2^{i-4}$  na współrzędnej $x$ a na $y$ o 16, podczas gdy w kwadracie tylko o $2^{\frac{i}{2}}$ na obu, a najkrótsza ścieżka musi przebiegać przez co najmniej tyle krawędzi ile wynosi odległość w metryce Manhattan między punktami. Co więcej, w rodzinie $Random$ odległości są najmniejsze, ponieważ połączenia są losowe i jest małe prawdopodobieństwo, że dwa wierzchołki będą od siebie odległe o wiele krawędzi. Ponadto, odchylenia standardowe też są większe dla rodzin o większych średnich odległościach.
+
+\subsection{Czas działa algorytmów w rodzinach}
+Zauważmy, że w każdej rodzinie $m\approx 4n=O(n)$ i $C=n=O(n)$, więc teoretyczna asymptotyczna złożoność czasowa zadanych algorytmów wynosi:
+\begin{itemize}
+\item dla algorytmu Dijkstry: $O((m+n)\log n)=O(2n\log n)=O(n\log n)$
+\item dla algorytmu Diala: $O(m+nC)=O(n+n\cdot n)=O(n^2)$
+\item dla algorytmu Radix Heap: $O(m+nK)=O(n+n \log Cn)=O(n+n\log n^2)=O(n\log n)$
+\end{itemize}
+\subsubsection{Long-n}
+Czas działania w tej rodzinie był największy dla algorytmu Diala. Zauważmy, że w tej rodzinie najkrótsza ścieżka jest długości co najmniej odległości Manhattan rozważanych wierzchołków. Odległości Manhattan mogą wynosić tu nawet $16+\frac{n}{16}$ więc algorytm musi przejść przez $C$ kubełków co najmniej liniową liczbę razy (zakładając, że średni koszt krawędzi to $\frac{C}{2}=\frac{n}{2}$). Natomiast algorytm Radix Heap radzi tu sobie bardzo dobrze, chociaż tworzenie kubełków i przerzucanie wartości i wybory najmniejszej wartości w kubełku generują większe koszta niż klasyczny algorytm Dijkstry z kopcem binarnym, który dla tak dużej liczby rozważanych wierzchołków okazał się być najszybszą strukturą.
+\subsubsection{Square-n}
+Średnie czasy są oczywiście mniejsze niż w Long-n, bo średnie odległości są mniejsze i trzeba wykonać mniej kroków, ale sama struktura grafów jest podobna i znowu algorytm Diala wypada najgorzej, następnie na drugim miejscu jest Radix Heap, a najlepiej klasyczny algorytm Dijkstry.
+
+\subsubsection{Random4-n}
+Wynik jest zaskakujący, bo struktura grafu jest zupełnie inna. W grafach losowych możemy z dowolnego wierzchołka średnio w dużo mniejszej liczbie kroków dojść do dowolnego innego wierzchołka. Okazuje się, że algorytm Diala działa najlepiej - tworzenie kubełków jest kosztowne, ale potem szybko dochodzimy do wyniku, a tworzenie kopca jest w tym przypadku bardziej kosztowne i algorytm Dijkstry wypada gorzej. Natomiast najbardziej kosztowne dla niskich odległości okazały się być operacje zmiany zakresów i szukania najmniejszych wartości w kubełkach, dlatego Radix Heap miał najgorszy czas.
+\end{document}

@@ -1,0 +1,243 @@
+% uklad dokumentu
+	\documentclass{article}
+	\usepackage{xparse}
+	\usepackage[margin=0.5cm]{geometry}
+    \usepackage{enumerate}
+	\frenchspacing
+    \linespread{1.2}
+    \setlength{\parindent}{0pt}
+
+% jezyk polski
+	\usepackage[polish]{babel}
+	\usepackage[utf8]{inputenc}
+	\usepackage{polski}
+
+% pakiety matematyczne
+    \let\lll\undefined
+	\usepackage{amssymb}
+    \usepackage{amsthm}
+	\usepackage{amsmath}
+	\usepackage{amsfonts}
+	\usepackage{tikz}
+	\usetikzlibrary{automata,positioning}
+	\usepackage{algpseudocode}
+
+% hiperlacza
+	\usepackage{hyperref}
+	\hypersetup{
+		colorlinks,
+		citecolor=black,
+		filecolor=black,
+		linkcolor=black,
+		urlcolor=black
+	}
+
+% wstawianie zdjec
+	\usepackage{graphicx}
+	\pagenumbering{gobble}
+
+\usepackage{mathtools}
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+
+% podstawowe informacje
+    \title{Algorytmy optymalizacji dyskretnej - Lista 4}
+    \author{Wojciech Sęk}
+
+\begin{document}
+
+\maketitle
+\section{Algorytmy}
+\subsection{Rozważane grafy}
+Oznaczmy przez $e_k(i)$ $k$-bitową reprezentację liczby $i$ i przez $H(i)$ wagę Hamminga liczby $i$. Algorytmy szukają największego przepływu na hiperkostkach $H_k=(N_k, A_k)$ o wymiarach $k\in\{1,\ldots,16\}$, gdzie:
+\begin{align*}
+N_k&=\{0,\ldots,2^{k}-1\}\\
+A_k&=\{(i,j)\in N_k\times N_k: H(e(j))=H(e(i))+1\}
+\end{align*}
+
+\subsection{Pojęcia}
+\subsubsection{Przepustowość residualna}
+Rozważamy sieć $G=(V,E)$ ze źródłem $s$ i ujściem $t$, niech $f$ to pewien przepływ w sieci $G$. Przepustowością residualną na krawędzi $(u,v)$ nazywamy:
+$$c_f(u,v)=c_{u,v}-f_{u,v}$$
+\subsubsection{Sieć residualna}
+Siecią residualną grafu $G=(V,E)$ i przepływu $f$ nazywamy:
+$$G_f=(V, \{(u,v)\in V\times V: c_f(u,v)>0\})$$
+czyli jest to sieć, która reprezentuje krawędzie, po których możemy jeszcze przesyłać.
+\subsubsection{Ścieżka powiększająca}
+Dla sieci $G=(V,E)$ i przepływu $f$ ścieżką powiększającą $p$ nazywamy każdą ścieżkę ze źródła $s$ do ujścia $t$ w sieci residualnej $G_f$.
+
+\subsubsection{Przepustowość residualna}
+Przepustowością residualną ścieżki $p$ jest
+$c_f(p)=\min\{c_f(u,v):(u,v) \text{ jest na } p \}$
+
+
+\subsubsection{Prawidłowa funkcja odległości}
+Prawidłową funkcją odległości $d:N\to \mathbb{N}$ sieci residualnej jest funkcja spełniająca warunki:
+$$d(t)=0 \wedge (\forall (i,j)\in G_f)(d(i)\leq d(j)+1)$$ 
+
+\subsubsection{Dopuszczalne łuki i ścieżki}
+Dopuszczalny łuk to łuk spełniający $f_{i,j}<c_{i,j} \wedge d(i)=d(j)+1$.\\
+Dopuszczalna ścieżka to ścieżka składająca się z dopuszczalnych łuków.  
+\subsubsection{Liczba wierzchołków i liczba krawędzi}
+Dla sieci $G=(N,A)$ oznaczamy $|N|$ przez $n$ oraz $|A|$ przez $m$. \\
+Zauważmy, że dla rozważnych hiperkostek wymiaru $k$ mamy dokładnie $n=2^k$ oraz $m=2^{k-1}k$.\\
+ Innymi słowy mamy $m=\frac{n}{2}\log n=O(n\log n)$.
+
+\newpage
+
+\subsection{Algorytm Edmondsa-Karpa}
+\subsubsection{Implementacja}
+Algorytm Edmondsa-Karpa jest implementacją metody Forda-Fulkersona, która w ogólności ma postać:
+\begin{algorithmic}
+\Function{Ford-Fulkerson}{$G, s, t$}
+	\For {$(u,v)\in A[G]$}
+		\State $f_{u,v}\gets 0$
+		\State $f_{v,u}\gets 0$
+	\EndFor
+	\While {istnieje ścieżka $p$ z $s$ do $t$ w sieci residualnej $G_f$}
+		\State $c_f(p)\gets \min\{c_f(u,v):(u,v)\in p\}$
+		\For {$(u,v)\in p$}
+			\State $f_{u,v}\gets f_{u,v}+c_f(p)$
+			\State $f_{v,u}\gets -f_{u,v}$
+		\EndFor
+	\EndWhile
+\EndFunction
+\end{algorithmic}
+
+Algorytm Edmondsa-Karpa mówi nam o implementacji kroku, w którym szukamy ścieżki powiększającej. Mianowicie, w sieci residualnej przeszukujemy wszerz od wierzchołka $s$ i jeżeli wierzchołek $t$ jest osiągalny to rozważamy daną ścieżkę. Gdy znajdziemy ścieżkę, szukamy najmniejszej jej przepustowości, a następnie powiększamy przepływ o tę wartość na całej ścieżce. W ten sposób, przepływ zwiększa się maksymalnie i co najmniej jedna krawędź jest wykluczana z sieci residualnej (krawędzie usuwane nazywamy krytycznymi). 
+
+\subsubsection{Złożoność}
+Początkowo zerujemy przepływ w sieci ze złożonością $O(m)$.
+Następnie szukamy ścieżki w sieci residualnej przez przeszukiwanie wszerz, czyli ze złożonością $O(n+m)$. W ogólności możemy też pokazać, że łączna liczba powiększeń w tym algorytmie wynosi $O(nm)$, ponieważ każda krawędź może być krytyczna co najwyżej $O(n)$ razy, bo od momentu, w którym jest krytyczna, musi zwiększyć się jej odległość od źródła o co najmniej 2 do momentu, gdy znowu będzie krytyczna. Wszystkich krawędzi w grafie residualnym może być $m$, więc wszystkich powiększeń może być $O(nm)$. Złożoność przypisań  nowych wartości dla przepływu $f$ wynosi $O(m)$ z racji liczby krawędzi na ścieżce, zatem ostatecznie złożoność algorytmu wynosi:
+$$O(nm\cdot(n+m+m))=O(n^2m+nm^2)=O(nm^2)$$
+
+\subsection{Model LP}
+\subsubsection{Opis}
+Model został zaimplementowany w języku Julia z użyciem biblioteki GLPK i JuMP. Dla kostki $k$ wymiarowej $H_k=(N_k, A_k)$ z przepustowościami $c_{i,j}$ na łukach $(i,j)\in A_k$ mamy następujący model:
+$$ \begin{aligned}
+\max\quad & \sum_{(1,j)\in A_k} x_{1,j}\\
+\text{Subject to} \quad & (\forall (i,j)\in A_k)( x_{i,j} \in \mathbb{N})\\
+ & (\forall (i,j)\in A_k)( x_{i,j} \leq c_{i,j})\\
+ & (\forall (i,j)\in (N_k\times N_k) \setminus A_k)( x_{i,j} = 0 )\\
+ &  \sum_{(i,2^{k}-1)\in A_k} x_{i,2^{k}-1} = \sum_{(0,j)\in A_k} x_{0,j} \\
+ & (\forall l\in [1,\ldots, 2^{k} - 2])\left( \sum_{(i,l)\in A_k} x_{i,l} = \sum_{(l,j)\in A_k} x_{l,j}\right)
+\end{aligned} $$
+
+\subsection{Shortest Augmenting Path}
+\subsubsection{Implementacja}
+Shortest augmenting path ma podobną budowę do algorytmu Edmondsa-Karpa, ale wykorzystuje fakt, że długość najkrótszej ścieżki od dowolnego węzła do ujścia $t$ jest niemalejąca względem powiększania o przepustowość ścieżki powiększającej. 
+
+\begin{algorithmic}
+\Function{Shortest-Augmenting-Path}{$G, s, t$}
+	\For {$(u,v)\in A[G]$}
+		\State $f_{u,v}\gets 0$
+		\State $f_{v,u}\gets 0$
+	\EndFor
+	\State dla $i\in N$ wylicz odległości $d(i)$ od ujścia $t$
+	\State$i\gets s$
+	\While {$d(s)<n$}
+		\If {$i$ ma dopuszczalny łuk}
+		\State $(i,j)\gets$ pewien dopuszczalny łuk
+		\State $pre(j)\gets i$
+		\State $i\gets j$
+		\If {$i=t$}
+		\State stwórz ścieżkę $p$ na podstawie tablicy $pre$
+		\State $\delta\gets \min\{c_{i,j}-f_{i,j}:(i,j)\in p\}$
+		\State powiększ przepływ na ścieżce o $\delta$
+		\State $i\gets s$
+		\EndIf
+		\Else
+			\State $d(i)\gets \min\{d(j)+1:(i,j)\in A \wedge f_{i,j}<c_{i,j}\}$
+			\If {$i\neq s$}
+				\State $i\gets pre(i)$
+			\EndIf
+		\EndIf 
+	\EndWhile
+\EndFunction
+\end{algorithmic}
+Można pokazać, że gdy $d(s)\geq n$ to sieć residualna nie posiada ścieżki skierowanej od $s$ do $t$, każda dopuszczalna ścieżka jest najkrótszą ścieżką powiększającą oraz, że algorytm Shortest Augmenting Path zachowuje poprawność funkcji odległości w każdym kroku. Z tych trzech własności wynika, że po zakończeniu działania, czyli gdy $d(s)\geq n$ algorytm policzy maksymalny przepływ.
+
+\subsubsection{Złożoność}
+Skorzystamy z następujących faktów:
+\begin{enumerate} [1)]
+\item Jeżeli algorytm zmienia wartość $d$ dowolnemu węzłowi co najwyżej $k$ razy, to czas spędzony na szukaniu dopuszczalnego łuku i zmiany wartości $d$ wynosi $O(km)$.
+\item Jeżeli algorytm zmienia wartość $d$ dowolnemu węzłowi co najwyżej $k$ razy, to algorytm usuwa krawędzie krytyczne z sieci residualnej co najwyżej $\frac{km}{2}$. 
+\item W algorytmie Shortest Augmenting Path każda wartość $d(i)$ jest zmieniana co najwyżej $n$ razy, więc liczba operacji zmiany $d$ wynosi co najwyżej $n^2$.
+\item Operacji poszerzania przepływu jest co najwyżej $\frac{nm}{2}$.
+\end{enumerate}
+Z powyższych własności mamy, że czas na poszukiwanie dopuszczalnych łuków i zmiany $d$ wynosi $O(nm)$. Każda operacja poszerzania przepływu wymaga $O(n)$ czasu, więc wszystkie te operacje wymagają $O(n^2m)$ czasu. Każda dopuszczalna ścieżka jest długości co najwyżej $n$, więc algorytm wymaga $O(n^2+n^2m)$ operacji przedłużania aktualnie znalezionej ścieżki, bo możemy co najwyżej $n$ razy zmieniać wartości $d(i)$ i co najwyżej $\frac{nm}{2}$ razy dokonywać poszerzania przepływu. Ostatecznie złożoność czasowa wynosi $O(n^2m)$.
+
+\section{Wyniki eksperymentów}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {maxflowplot} 
+\caption{Średni maksymalny przepływ w zależności od $n$}
+\end{figure}
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {maxflowplotbyn} 
+\caption{Średni maksymalny przepływ podzielony przez $n\log n$ w zależności od $n$}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {timealllplot} 
+\caption{Czas działania dla losowej hiperkostki wymiaru od $1$ do $10$ dla algorytmów i modelu LP}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {timeplot} 
+\caption{Średni czas działania dla algorytmów}
+\end{figure}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {timeplotonlysap} 
+\caption{Średni czas działania dla algorytmu Shortest Augmenting Path}
+\end{figure}
+
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.7\textwidth, 
+                   height = 0.45\textheight, 
+                   keepaspectratio]
+                  {visitedpathsplot} 
+\caption{Średnia liczba wyznaczanych ścieżek}
+\end{figure}
+
+
+\clearpage
+
+\section{Intepretacja i wnioski}
+\subsection{Średni maksymalny przepływ}
+Wynik eksperymentu jest konsekwencją budowy grafu. Rozważmy łuk $(u,v)$. Wartością oczekiwaną przepustowości tego łuku jest $2^{l-1}$, gdzie $l$ to maximum z liczby jedynek i liczby zer w binarnej reprezentacji $u$ i $v$. Jeżeli narysujemy graf warstwami, tak że w danej warstwie są węzły z kolejnymi wartościami wagi Hamminga, to na brzegowych warstwach mamy największe średnie przepustowości, natomiast w środkowych warstwach małe, ale za to jest więcej węzłów o takich wartościach wagi Hamminga. Zatem średnio przesyłamy tyle ile można wysłać od źródła $0$, czyli $2^{k-1} k$, co daje dokładnie $\frac{1}{2}n\log n$. Eksperyment potwierdził, że średnio ten współczynnik jest bliski $\frac{1}{2}$, ale delikatnie mniejszy.
+\subsection{Średni czas}
+Czas rozwiązywania modelu przez solver $GLPK$ był absurdalnie wielki, przez co eksperymenty były przeprowadzone tylko dla hiperkostek o wymiarze co najwyżej 10. \\
+Natomiast algorytm Edmondsa-Karpa był znacznie większy od Shortest Augmenting Path i osiągnął jest zdecydowanie złożony bardziej niż $O(n)$. Mimo teoretycznej złożoności $O(n^2m)$ w praktyce Shortest Augmenting Path osiąga średnio liniową złożoność. \\
+Złożoność algorytmu Edmondsa-Karpa wynika z tego, że ścieżki są znajdowane przez przeszukiwanie wszerz, co w zadanej strukturze grafu daje, że musimy przejrzeć wszystkie osiągalne wierzchołki od $0$ do warstwy i wszystkie ich krawędzie, a to przeglądanie praktycznie całego grafu (dla grafu residualnego ze wszystkimi krawędziami przejrzymy optymistycznie aż $m-k+1$ krawędzi i $n$ wierzchołków).\\
+Shortest Augmenting Path natomiast przeszukuje wgłąb i optymistycznie może przejrzeć zaledwie $k+1$ wierzchołków i $k$ krawędzi.
+\subsection{Liczba wyznaczanych ścieżek} 
+Liczba wyznaczanych ścieżek ma jest $o(n)$ i co więcej pokrywa się dla algorytmu Edmondsa-Karpa oraz dla Shortest Augmenting Path. Oba algorytmy przeglądają w tej samej kolejności krawędzie wychodzące od danego węzła (zamieniają zera na jedynki w zapisie bitowym zaczynając od prawej strony), więc znajdują te same przepływy. 
+
+
+\end{document}

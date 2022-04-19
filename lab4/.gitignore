@@ -1,0 +1,11 @@
+*.txt
+*.aux
+*.log
+*.out
+*.gz
+*.zip
+*.png
+/inputs
+/outputs
+/target
+/.vscode

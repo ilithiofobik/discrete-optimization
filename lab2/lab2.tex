@@ -1,0 +1,344 @@
+% uklad dokumentu
+	\documentclass{article}
+	\usepackage{xparse}
+	\usepackage[margin=0.5cm]{geometry}
+    \usepackage{enumerate}
+	\frenchspacing
+    \linespread{1.2}
+    \setlength{\parindent}{0pt}
+
+% jezyk polski
+	\usepackage[polish]{babel}
+	\usepackage[utf8]{inputenc}
+	\usepackage{polski}
+
+% pakiety matematyczne
+    \let\lll\undefined
+	\usepackage{amssymb}
+    \usepackage{amsthm}
+	\usepackage{amsmath}
+	\usepackage{amsfonts}
+	\usepackage{tikz}
+	\usetikzlibrary{automata,positioning}
+	\usepackage{algpseudocode}
+
+% hiperlacza
+	\usepackage{hyperref}
+	\hypersetup{
+		colorlinks,
+		citecolor=black,
+		filecolor=black,
+		linkcolor=black,
+		urlcolor=black
+	}
+
+% wstawianie zdjec
+	\usepackage{graphicx}
+	\pagenumbering{gobble}
+
+
+% podstawowe informacje
+    \title{Algorytmy optymalizacji dyskretnej - Lista 2}
+    \author{Wojciech Sęk}
+
+\begin{document}
+
+\maketitle
+\section{Zadanie 1}
+\subsection{Opis modelu}
+\subsubsection{Zmienne decyzyjne}
+Dla problemu związanego z $n$ lotniskami i $m$ firmami zmienną decyzyjną jest $x\in\mathbb{R}^{n \times m}$, która oznacza, że od firmy $j$ lotnisko $i$ kupiło $x_{ij}$ paliwa.
+\subsubsection{Ograniczenia}
+Mamy 3 rodzaje ograniczeń:
+\begin{itemize}
+\item Zawsze kupujemy nieujemną ilość paliwa zatem $(\forall i\in[n],j\in[m])(x_{ij} \geq 0)$.
+\item Firma $j$ może zapewnić tylko $c_j$ paliwa, zatem mamy
+$$\left(\forall j\in[m]\right)\left(\sum_{i=1}^n x_{ij} \leq c_j\right)$$
+\item Lotnisko $i$ musi kupić $C_i$ paliwa, zatem mamy
+$$\left(\forall i\in[n]\right)\left(\sum_{j=1}^m x_{ij} = C_i\right)$$
+\end{itemize}
+\subsubsection{Funkcja celu}
+Niech $A\in\mathbb{R}_+^{n \times m}$ to macierz kosztu, w której $a_{ij}$ oznacza koszt paliwa kupionego od firmy $j$ dla lotniska $i$. Wtedy funkcja celu:
+
+$$\sum_{i\in[n],j\in[m]} a_{ij} \cdot x_{ij}$$
+
+W tym problemie funkcja będzie minimalizowana.
+\subsection{Wyniki i interpretacja}
+Dla $3$ firm i $4$ lotnisk z następującymi kosztami
+\begin{center}
+\begin{tabular}{| c | c c c |}
+\hline
+ & Firma 1 & Firma 2 & Firma 3\\
+ \hline
+Lotnisko 1 & 10 & 7 & 8\\
+Lotnisko 2 & 10 & 11 & 14\\
+Lotnisko 3 & 9 & 12 & 4\\
+Lotnisko 4 & 11 & 13 & 9\\
+\hline
+\end{tabular}
+\end{center}
+i ograniczeniami na paliwo od firm i lotnisk:
+$$c_1=275000, c_2=550000, c_3=660000; C_1=110000, C_2=220000, C_3=330000, C_4=440000$$ 
+wartość minimalna funkcji celu wynosi $8525000$ i ilości kupionego paliwa wyglądają następująco
+\begin{center}
+\begin{tabular}{| c | c | c | c |}
+\hline
+ & Firma 1 & Firma 2 & Firma 3\\
+ \hline
+Lotnisko 1 & 0 & 110000 & 0\\
+\hline
+Lotnisko 2 & 165000 & 55000 & 0 \\
+\hline
+Lotnisko 3 & 0 & 0 & 330000 \\
+\hline
+Lotnisko 4 & 110000 &  0 & 330000 \\
+\hline
+\hline 
+Suma lotnisk & 275000 &  165000 & 660000\\
+\hline
+\end{tabular}
+\end{center}
+Wszystkie firmy dostarczają paliwo i tylko firma 2 może jeszcze dostarczyć paliwa, bo $\sum_{i=1}^4 x_{i2} < c_2$, a dla $j\neq 2$ mamy  $\sum_{i=1}^4 x_{ij} = c_j$.
+
+
+
+
+\section{Zadanie 2}
+\subsection{Opis modelu}
+\subsubsection{Zmienne decyzyjne}
+Dla problemu z $n$ miastami i $m$ połączeniami między miastami zmienną decyzyjną jest macierz połączeń między miastami $x\in \mathbb{R}^{n\times n}$, gdzie $x_{ij} = 1$ oznacza, że droga optymalna zawiera połączenia z miasta $i$ do $j$, a $x_{ij} = 0$ oznacza, że nie zawiera.
+
+
+\subsubsection{Ograniczenia}
+W oryginalnym modelu mamy 6 ograniczeń:
+\begin{enumerate}[1)]
+\item Wartości w macierzy są równe $0$ albo $1$, zatem $(\forall i\in [n], j\in[m])(x_{ij} \in \{0,1\})$
+\item Jeżeli nie ma połączenia między miastami $i$ i $j$, to nie wykorzystujemy go w rozwiązaniu optymalnym. Niech $c\in\mathbb{R}^{n\times n}$ oznacza macierz kosztów dojazdu, $c_{ij}$ to koszt dojazdu z miasta $i$ do $j$. Zatem $(\forall i\in [n], j\in[m])(c_{ij} = 0 \Rightarrow x_{ij} = 0)$
+\item Dla każdego miasta oprócz pierwszego i ostatniego suma dróg wpadających do  nich jest równa sumie dróg wychodzących
+$$(\forall i\in [n]\setminus\{i_0,j_0\})\left(\sum_{j\in[n]}x_{ij} = \sum_{j\in[n]} x_{ji}\right)$$ 
+\item Dla miasta startowego $i_0$ suma dróg wychodzących jest większa o 1 od sumy dróg wchodzących
+$$\sum_{j\in[n]}x_{i_0j} - \sum_{j\in[n]} x_{ji_0} = 1$$ 
+
+\item Dla miasta startowego $i_0$ suma dróg wychodzących jest większa o 1 od sumy dróg wchodzących
+$$\sum_{i\in[n]}x_{j_0 i} - \sum_{i\in[n]} x_{ij_0} = -1$$ 
+
+\item Niech $t\in\mathbb{R}^{n\times n}$ oznacza macierz czasów dojazdu, $t_{ij}$ to czas dojazdu z miasta $i$ do $j$.  Niech $T$ to ograniczenie górne na czas przejazdu. Wtedy
+$$\sum_{i\in[n],j\in[n]} t_{ij} \cdot x_{ij} \leq T$$
+
+
+\end{enumerate}
+Model drugi osłabia warunek $1)$ do $(\forall i\in [n], j\in[m])(x_{ij} \in [0,1])$. Model trzeci usuwa warunek $6)$.
+
+\subsubsection{Funkcja celu}
+Funkcją celu jest koszt całej trasy, czyli
+$$\sum_{i\in[n],j\in[n]} c_{ij} \cdot x_{ij}$$
+Funkcję tę będziemy minimalizować.
+
+\subsection{Wyniki i interpretacja}
+Rozważamy egzemplarz, gdzie $i_0=1,j_0=4, T=7$, a koszta i czasy wyglądają następująco 
+\begin{center}
+\begin{tikzpicture}[shorten >=1pt,node distance=3.1cm,on grid,auto] 
+   \node[state] (1)   {$1$};
+   \node[state] (2) [right of = 1]  {$2$}; 
+   \node[state] (4) [below of = 2]  {$4$}; 
+   \node[state] (3) [left of = 4]  {$3$}; 
+
+   \path[->] 
+    (1) edge node {$t_{12}=2, c_{12}=8$} (2)
+        edge node [swap] {$t_{13}=4, c_{13}=4$} (3)
+        edge node {$c_{14}=2$ } (4)
+        edge node [swap] {$t_{14}=8$ } (4)
+    (2) edge node {$t_{24}=4, c_{24}=4$} (4)    
+    (3) edge node [swap] {$c_{34}=8, t_{34}=2$} (4);
+\end{tikzpicture}
+\end{center}
+
+Model pierwszy, czyli prawidłowy, znalazł następującą trasę, o koszcie $12$ i czasie przejazdu $6 (\leq T)$:
+\begin{center}
+\begin{tikzpicture}[shorten >=1pt,node distance=3.1cm,on grid,auto] 
+   \node[state] (1)   {$1$};
+   \node[state] (2) [right of = 1]  {$2$}; 
+   \node[state] (4) [below of = 2]  {$4$}; 
+   \node[state] (3) [left of = 4]  {$3$}; 
+
+   \path[->] 
+    (1) edge node [swap] {$1$} (3)
+    (3) edge node [swap] {$1$} (4);
+\end{tikzpicture}
+\end{center}
+Drugi model (bez ograniczenia na całkowitość) znalazł następującą trasę, o koszcie $7$ i czasie przejazdu $7$, ale nielegalnej ze względu na niecałkowite zmienne decyzyjne:
+\begin{center}
+\begin{tikzpicture}[shorten >=1pt,node distance=3.1cm,on grid,auto] 
+   \node[state] (1)   {$1$};
+   \node[state] (2) [right of = 1]  {$2$}; 
+   \node[state] (4) [below of = 2]  {$4$}; 
+   \node[state] (3) [left of = 4]  {$3$}; 
+
+   \path[->] 
+    (1) edge node [swap] {$0.5$} (3)
+    (1) edge node [swap] {$0.5$} (4)
+    (3) edge node [swap] {$0.5$} (4);
+    
+\end{tikzpicture}
+\end{center}
+Model trzeci (bez ograniczenia czasowego) znalazł następującą trasę, o koszcie $2$ i czasie $8$. Przekracza ona limit czasu:
+\begin{center}
+\begin{tikzpicture}[shorten >=1pt,node distance=3.1cm,on grid,auto] 
+   \node[state] (1)   {$1$};
+   \node[state] (2) [right of = 1]  {$2$}; 
+   \node[state] (4) [below of = 2]  {$4$}; 
+   \node[state] (3) [left of = 4]  {$3$}; 
+
+   \path[->] 
+    (1) edge node [swap] {$1$} (4);    
+\end{tikzpicture}
+\end{center}
+
+
+
+\section{Zadanie 3}
+\subsection{Opis modelu}
+\subsubsection{Zmienne decyzyjne}
+Dla problemu związanego z $n$ zmianami i $m$ dzielnicami mamy macierz czterowymiarową $x^{(n+1)\times(m+1)\times(n+1)\times(m+1)}$, w której $x_{abcd}$ oznacza przepływ przez łuk od $(a,b)$ do $(c,d)$. 
+W naszym grafie przez węzeł $(n+1,m+1)$ przypływają wszystkie radiowozy, przez węzły postaci $(n+1,j)$ przepływają wszystkie radiowozy związane z dzielnicą $j$. Przez węzły postaci $(i, m+1)$ przepływają wszystkie radiowozy związane ze zmianą $i$. Przez węzły postaci $(i,j)$ dla $i\leq n, j\leq m$, przepływają radiowozy związane ze zmianą $i$ i dzielnicą $j$.
+
+
+\subsubsection{Ograniczenia}
+Mamy $4$ rodzaje ograniczeń:
+\begin{itemize}
+\item Ponieważ mamy ograniczenia na minimalną liczbę dla każdej zmiany i dzielnicy, jak również na minimalną liczbę radiowozów dla całej zmiany i całych dzielnic, to krawędzie bez ograniczenia dolnego (z ograniczeniem dolnym = 0) nie istnieją i nie bierzemy ich pod uwagę w modelu
+$$(\forall a,c\in [n+1], b,d\in[m+1])(l_{abcd} = 0 \Rightarrow x_{abcd} = 0)$$
+\item Dla każdego węzła suma radiowozów wjeżdżających do niego i suma wyjeżdżających z węzła są równe.
+$$(\forall a\in [n+1], b\in[m+1])\left(\sum_{c\in[n+1],d\in[m+1]}x_{abcd} =\sum_{c\in[n+1],d\in[m+1]}x_{cdab} \right)$$ 
+\item Jeżeli dla węzła istnieje ograniczenie dolne ($l_{abcd} > 0$) to uwzględniamy je
+$$(\forall a,c\in [n+1], b,d\in[m+1])(l_{abcd} > 0 \Rightarrow x_{abcd} \geq l_{abcd})$$
+\item Jeżeli dla węzła istnieje ograniczenie górne ($u_{abcd} > 0$ w naszym programie) to uwzględniamy je
+$$(\forall a,c\in [n+1], b,d\in[m+1])(u_{abcd} > 0 \Rightarrow x_{abcd} \leq u_{abcd})$$
+\end{itemize}
+\subsubsection{Funkcja celu}
+Funkcją celu jest suma wszystkich radiowozów przepływających przez sieć (wszystkie przepływają od węzłów postaci $(i,m+1)$ do węzła głównego $(n+1,m+1)$), czyli
+$$\sum_{i\in[n]}x_{i,m+1,n+1,m+1} $$
+Funkcję tę będziemy minimalizować.
+
+\subsection{Wyniki i interpretacja}
+Rozważamy egzemplarz z $3$ zmianami, $3$ dzielnicami i następującymi ograniczeniami:
+\begin{itemize}
+\item Ograniczenia dolne
+\begin{center}
+\begin{tabular}{c c c c}
+ & zmiana 1 & zmiana 2 & zmiana 3\\
+ \hline
+$p_1$ & 2 & 4 & 3\\
+\hline
+$p_2$ & 3 & 6 & 5 \\
+\hline
+$p_3$ & 5 & 7 & 6 \\
+\hline
+\end{tabular}
+\end{center}
+\item Ograniczenia górne
+\begin{center}
+\begin{tabular}{c c c c}
+ & zmiana 1 & zmiana 2 & zmiana 3\\
+ \hline
+$p_1$ & 3 & 7 & 5\\
+\hline
+$p_2$ & 5 & 7 & 10 \\
+\hline
+$p_3$ & 8 & 12 & 10 \\
+\hline
+\end{tabular}
+
+\end{center}
+\item Dla zmiany 1, 2 i 3 powinno być dostępnych, odpowiednio, co najmniej 10, 20 i 18 radiowozów.
+\item Dla dzielnicy 1, 2 i 3 powinno być dostępnych, odpowiednio, co najmniej 10, 20 i 13 radiowozów.
+\end{itemize}
+
+Model zwraca następujące przypisanie radiowozów:
+
+\begin{center}
+\begin{tabular}{| c | c | c | c |}
+\hline
+ & zmiana 1 & zmiana 2 & zmiana 3\\
+ \hline
+$p_1$ & 2 & 6 & 3\\
+\hline
+$p_2$ & 3 & 7 & 10 \\
+\hline
+$p_3$ & 5 & 7 & 6 \\
+\hline
+\end{tabular}
+\end{center}
+Wtedy
+\begin{itemize}
+\item Dla zmiany 1, 2 i 3 jest dostępnych, odpowiednio, 10, 20 i 19 radiowozów.
+\item Dla dzielnicy 1, 2 i 3 jest dostępnych, odpowiednio, 11, 20 i 18 radiowozów.
+\end{itemize}
+Całościowo potrzebujemy 49 radiowozów. 
+
+\section{Zadanie 4}
+\subsection{Opis modelu}
+
+\subsubsection{Zmienne decyzyjne}
+Dla magazynu o wymiarze $n\times m$ zmienną decyzyjną jest macierz $c\in \mathbb{N}^{n\times m}$, dla której $c_{ij}$ oznacza liczbę kamer w kwadracie $ij$.
+\subsubsection{Ograniczenia}
+Mamy dwa rodzaje ograniczeń:
+\begin{itemize}
+\item Nie możemy stawiać kamer tam gdzie stoją kontenery. Niech $b\in \{0,1\}^{n\times m}$ to macierz obecności kontenerów, gdzie $b_{ij} = 1$ oznacza, że na kwadracie $ij$ stoi kontener. Wtedy:
+$(\forall i\in [n], j\in[m])(b_{ij} = 1 \Rightarrow c_{ij} = 0)$
+\item Dla zasięgu kamer $k$ mamy ograniczenie na obecność kamer wokół kontenerów:
+$$(\forall i\in [n], j\in[m])\left(\sum_{l=\max(1, j-k)}^{ \min(m, j+k)}c_{il} + 
+\sum_{l=\max(1, i-k)}^{ \min(n, i+k) }c_{lj}\geq 1 \right)$$
+\end{itemize}
+\subsubsection{Funkcja celu}
+Funkcją celu jest liczba kamer
+$$\sum_{i\in[n],j\in[m]} c_{ij}$$
+Funkcję tę będziemy minimalizować.
+\subsection{Wyniki i interpretacja}
+Dla egzemplarzu problemu z $k=2$ zasięgiem kamery, i magazynem o wymiarach $10\times10$ z następującym rozkładem kontenerów:
+
+\begin{center}
+\begin{tikzpicture}
+    [%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        box/.style={rectangle,draw=black,thick, minimum size=0.5cm},
+    ]%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\draw[step=0.5cm,color=gray] (0,0) grid (5,5);
+\node[box,fill=red] at (1.25,0.25){}; 
+\node[box,fill=red] at (1.75,1.25){};  
+\node[box,fill=red] at (4.75,1.25){};
+\node[box,fill=red] at (1.75, 1.75){}; 
+\node[box,fill=red] at (2.25,3.25){}; 
+\node[box,fill=red] at (2.75,3.75){}; 
+\node[box,fill=red] at (4.25,4.25){}; 
+\node[box,fill=red] at (3.25,4.75){};
+\node[box,fill=red] at (2.75,4.75){};
+\node[box,fill=red] at (2.25,4.75){};
+\end{tikzpicture}
+\end{center}
+Model znalazł następujący rozkład kamer:
+\begin{center}
+\begin{tikzpicture}
+    [%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        box/.style={rectangle,draw=black,thick, minimum size=0.5cm},
+    ]%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\draw[step=0.5cm,color=gray] (0,0) grid (5,5);
+\node[box,fill=red] at (1.25,0.25){}; 
+\node[box,fill=red] at (1.75,1.25){};  
+\node[box,fill=red] at (4.75,1.25){};
+\node[box,fill=red] at (1.75, 1.75){}; 
+\node[box,fill=red] at (2.25,3.25){}; 
+\node[box,fill=red] at (2.75,3.75){}; 
+\node[box,fill=red] at (4.25,4.25){}; 
+\node[box,fill=red] at (3.25,4.75){};
+\node[box,fill=red] at (2.75,4.75){};
+\node[box,fill=red] at (2.25,4.75){};
+\node[box,fill=blue] at (1.25,1.25){};
+\node[box,fill=blue] at (0.75,1.75){};
+\node[box,fill=blue] at (3.75,1.25){};
+\node[box,fill=blue] at (3.25,4.25){};
+\node[box,fill=blue] at (2.75,4.25){};
+\node[box,fill=blue] at (2.25,3.75){};
+\end{tikzpicture}
+\end{center}
+Model jest prawidłowy, a optymalna liczba kamer to $6$.
+\end{document}
