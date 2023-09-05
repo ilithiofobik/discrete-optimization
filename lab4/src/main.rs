@@ -1,7 +1,9 @@
 use colored::*;
 use std::env;
-mod hypercube_build;
-use hypercube_build::hypercube;
+use lab4::hypercube;
+use lab4::edmonds_karp;
+use lab4::sap;
+use lab4::julia;
 use std::time::Instant;
 
 fn main() {
@@ -26,7 +28,7 @@ fn main() {
 
     let mut cube = hypercube::Hypercube::new(k);
     if gen_glpk {
-        let model = hypercube::generate_model(&cube, model_name);
+        let model = julia::generate_model(&cube, model_name);
         match model {
             Ok(_) => (),
             Err(e) => eprintln!("{}", e),
@@ -35,7 +37,7 @@ fn main() {
 
     // testy do Karpa
     let start = Instant::now();
-    let (max_flow, num_paths) = hypercube::edmonds_karp(&mut cube);
+    let (max_flow, num_paths) = edmonds_karp::edmonds_karp(&mut cube);
     let duration = start.elapsed();
 
     println!("Edmonds-Karp Max flow: {}", max_flow);
@@ -44,7 +46,7 @@ fn main() {
         let two: u32 = 2;
         for i in 0..cube.n {
             for j in 0..k {
-                let key = two.pow(j as u32) ^ (i as u32);
+                let key = two.pow(j) ^ (i as u32);
                 if key > (i as u32) {
                     println!("Edmonds-Karp x[{}][{}]={}", i, key, (cube.f[i])[&key]);
                 }
@@ -61,7 +63,7 @@ fn main() {
 
     // testy do shortest augmenting path
     let start = Instant::now();
-    let (max_flow, num_paths) = hypercube::shortest_augmenting_path(&mut cube);
+    let (max_flow, num_paths) = sap::shortest_augmenting_path(&mut cube);
     let duration = start.elapsed();
 
     println!("Shortest Augmenting Path Max flow: {}", max_flow);
@@ -70,7 +72,7 @@ fn main() {
         let two: u32 = 2;
         for i in 0..cube.n {
             for j in 0..k {
-                let key = two.pow(j as u32) ^ (i as u32);
+                let key = two.pow(j) ^ (i as u32);
                 if key > (i as u32) {
                     println!(
                         "Shortest Augmenting Path x[{}][{}]={}",
